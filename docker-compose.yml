@@ -1,14 +1,14 @@
  version: '3.8'
 
 services:
-  # Service 1: Your FastAPI Backend
+  # Service 1: FastAPI Backend
   api:
     build: .  # Build the image from the Dockerfile in this directory
     container_name: obex-api
     ports:
       - "8000:8000" # Map host port 8000 to container port 8000
     volumes:
-      - ./app:/app/app # Mount your local 'app' folder into the container
+      - ./app:/app/app # Mount local 'app' folder into the container
                       # This enables hot-reloading on code changes.
     
   # Service 2: The MQTT Broker (Mosquitto)
@@ -17,6 +17,6 @@ services:
     container_name: obex-mqtt-broker
     ports:
       - "1883:1883" # Standard MQTT port
-      - "9001:9001" # MQTT over WebSockets (for John's task)
+      - "9001:9001" # MQTT over WebSockets 
     volumes:
       - ./mosquitto/config:/mosquitto/config

@@ -10,7 +10,7 @@ COPY requirements.txt .
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy your application code (the 'app' directory) into the container
+# Copy application code (the 'app' directory) into the container
 COPY ./app /app/app
 
 # Expose port 8000 so the host can access the API

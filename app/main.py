@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from typing import List
-from app import schema # <--- UPDATED
+from app import schema 
 from datetime import datetime
 import paho.mqtt.client as mqtt
 import json
@@ -18,8 +18,8 @@ app = FastAPI(
 )
 
 # --- In-Memory "Database" ---
-db_devices: List[schema.Device] = [] # <--- UPDATED
-db_alerts: List[schema.Alert] = [] # <--- UPDATED
+db_devices: List[schema.Device] = [] 
+db_alerts: List[schema.Alert] = [] 
 
 # --- MQTT Client Logic ---
 
@@ -38,11 +38,11 @@ def on_message(client, userdata, msg):
     try:
         payload = json.loads(msg.payload.decode())
         
-        # Validate the data using your Pydantic schema
-        alert_data = schema.AlertCreate(**payload) # <--- UPDATED
+        # Validate the data using Pydantic schema
+        alert_data = schema.AlertCreate(**payload) 
         
         # Simulate adding to the database
-        new_alert = schema.Alert( # <--- UPDATED
+        new_alert = schema.Alert( 
             **alert_data.dict(),
             id=len(db_alerts) + 1
         )
@@ -81,10 +81,10 @@ def read_root():
     """A simple root endpoint to confirm the API is running."""
     return {"status": "OBEX Backend is running"}
 
-@app.post("/devices/register", response_model=schema.Device) # <--- UPDATED
-def register_device(device: schema.DeviceCreate): # <--- UPDATED
+@app.post("/devices/register", response_model=schema.Device) 
+def register_device(device: schema.DeviceCreate): 
     """Register a new edge device (e.g., Raspberry Pi) with the system."""
-    new_device = schema.Device( # <--- UPDATED
+    new_device = schema.Device( 
         **device.dict(),
         id=len(db_devices) + 1,
         created_at=datetime.utcnow()
@@ -92,13 +92,13 @@ def register_device(device: schema.DeviceCreate): # <--- UPDATED
     db_devices.append(new_device)
     return new_device
 
-@app.post("/alerts", response_model=schema.Alert) # <--- UPDATED
-def receive_alert(alert: schema.AlertCreate): # <--- UPDATED
+@app.post("/alerts", response_model=schema.Alert) 
+def receive_alert(alert: schema.AlertCreate): 
     """
     (This endpoint is still useful for testing with HTTP)
     Receives a new alert from an edge device.
     """
-    new_alert = schema.Alert( # <--- UPDATED
+    new_alert = schema.Alert( 
         **alert.dict(),
         id=len(db_alerts) + 1
     )
@@ -106,7 +106,7 @@ def receive_alert(alert: schema.AlertCreate): # <--- UPDATED
     print(f"New Alert Received (via HTTP): {new_alert.alert_type}")
     return new_alert
 
-@app.get("/alerts", response_model=List[schema.Alert]) # <--- UPDATED
+@app.get("/alerts", response_model=List[schema.Alert]) 
 def get_all_alerts():
     """Retrieve a list of all alerts."""
     return db_alerts
