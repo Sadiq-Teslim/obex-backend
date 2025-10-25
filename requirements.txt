@@ -1,0 +1,5 @@
+fastapi
+uvicorn[standard]
+pydantic
+paho-mqtt
+# Add psycopg2-binary later when connecting to Ofogba's DB
