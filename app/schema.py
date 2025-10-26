@@ -1,6 +1,7 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import Optional, Literal
 from datetime import datetime
+import uuid
 
 # --- Device Schemas ---
 
@@ -18,11 +19,12 @@ class DeviceStatusUpdate(BaseModel):
     last_seen: datetime
 
 class Device(DeviceBase):
-    id: int # Internal DB ID
+    id: uuid.UUID 
     created_at: datetime
     
-    class Config:
-        orm_mode = True
+    model_config = {
+        "from_attributes": True  # <- allows from_orm() to work in Pydantic v2
+    }
 
 # --- Alert Schemas ---
 # [cite_start]Based on the modules from the Engagement Proposal [cite: 9, 10, 11, 12, 13, 14, 15, 16]
@@ -48,7 +50,15 @@ class AlertCreate(AlertBase):
     pass
 
 class Alert(AlertBase):
-    id: int # Internal DB ID
+    id: uuid.UUID 
 
-    class Config:
-        orm_mode = True
+    model_config = {
+        "from_attributes": True  # <- allows from_orm() to work in Pydantic v2
+    }
+
+    @field_validator("payload", mode="before")
+    def parse_payload(cls, v):
+        if isinstance(v, str):
+            import json
+            return json.loads(v)
+        return v
