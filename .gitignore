@@ -1,9 +1,56 @@
-# Virtual Environment
+# Virtual environments
 .venv/
+venv/
+env/
+ENV/
 
-# Python cache
+# Environment files
+.env
+.env.*
+
+# Python bytecode/cache
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
 
-# VS Code settings
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+pip-wheel-metadata/
+wheels/
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Type checkers / caches
+.mypy_cache/
+.pyre/
+.pyright/
+
+# Logs
+*.log
+logs/
+uvicorn.log
+
+# Databases
+*.sqlite3
+*.db
+instance/
+
+# IDEs / editors
 .vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Misc
+*.egg
+*.whl

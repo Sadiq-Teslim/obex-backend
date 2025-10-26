@@ -1,25 +1,55 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from typing import List
-from app import schema 
+from app import schema, models
+import os
+from contextlib import asynccontextmanager
+from config.database import connect_db, close_db, AsyncSessionLocal
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from uuid import uuid4
 from datetime import datetime
 import paho.mqtt.client as mqtt
 import json
+from dotenv import load_dotenv
+import threading
+
+
+load_dotenv()
 
 # --- MQTT Broker Configuration ---
-MQTT_BROKER_HOST = "localhost"
-MQTT_BROKER_PORT = 1883
-MQTT_ALERTS_TOPIC = "obex/alerts" 
+MQTT_BROKER_HOST = os.getenv("MQTT_BROKER_HOST", "test.mosquitto.org")
+MQTT_BROKER_PORT = int(os.getenv("MQTT_BROKER_PORT", "1883"))
+MQTT_ALERTS_TOPIC = os.getenv("MQTT_ALERTS_TOPIC", "obex/alerts")
+MQTT_USERNAME = os.getenv("MQTT_USERNAME", "")
+MQTT_PASSWORD = os.getenv("MQTT_PASSWORD", "")
 
 # --- Initialize FastAPI App ---
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await connect_db()
+    yield
+    await close_db()
+
 app = FastAPI(
-    title="OBEX Backend API",
+    title="OBEX EDGE Backend API",
     description="API for the OBEX Vehicle Security System",
-    version="0.1.0"
+    version="0.1.0",
+    lifespan=lifespan
 )
 
-# --- In-Memory "Database" ---
-db_devices: List[schema.Device] = [] 
-db_alerts: List[schema.Alert] = [] 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+async def get_db() -> AsyncSession:
+    async with AsyncSessionLocal() as session:
+        yield session
 
 # --- MQTT Client Logic ---
 
@@ -42,14 +72,15 @@ def on_message(client, userdata, msg):
         alert_data = schema.AlertCreate(**payload) 
         
         # Simulate adding to the database
-        new_alert = schema.Alert( 
-            **alert_data.dict(),
-            id=len(db_alerts) + 1
-        )
-        db_alerts.append(new_alert)
-        
-        print(f"Successfully processed and stored alert: {new_alert.alert_type}")
-        
+        async def save_alert():
+            async with AsyncSessionLocal() as session:
+                new_alert = schema.Alert(**alert_data.dict())
+                session.add(new_alert)
+                await session.commit()
+                print(f"✅ Stored alert in DB: {new_alert.alert_type}")
+
+        import asyncio
+        asyncio.create_task(save_alert())
     except json.JSONDecodeError:
         print("Error: Received message is not valid JSON.")
     except Exception as e:
@@ -57,15 +88,22 @@ def on_message(client, userdata, msg):
 
 # Create the MQTT client instance
 mqtt_client = mqtt.Client()
+mqtt_client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
+mqtt_client.tls_set()
 mqtt_client.on_connect = on_connect
 mqtt_client.on_message = on_message
 
 @app.on_event("startup")
 async def startup_event():
-    """Connect to MQTT broker on app startup."""
-    print("Attempting to connect to MQTT broker...")
-    mqtt_client.connect(MQTT_BROKER_HOST, MQTT_BROKER_PORT, 60)
-    mqtt_client.loop_start()
+    def mqtt_thread():
+        try:
+            print("🔌 Connecting to MQTT broker...")
+            mqtt_client.connect(MQTT_BROKER_HOST, MQTT_BROKER_PORT, 60)
+            mqtt_client.loop_forever()
+        except Exception as e:
+            print(f"❌ MQTT connection failed: {e}")
+
+    threading.Thread(target=mqtt_thread, daemon=True).start()
 
 @app.on_event("shutdown")
 async def shutdown_event():
@@ -82,31 +120,30 @@ def read_root():
     return {"status": "OBEX Backend is running"}
 
 @app.post("/devices/register", response_model=schema.Device) 
-def register_device(device: schema.DeviceCreate): 
+async def register_device(device: schema.DeviceCreate, db: AsyncSession = Depends(get_db)): 
     """Register a new edge device (e.g., Raspberry Pi) with the system."""
-    new_device = schema.Device( 
-        **device.dict(),
-        id=len(db_devices) + 1,
-        created_at=datetime.utcnow()
-    )
-    db_devices.append(new_device)
+    new_device = models.Device(**device.dict(), id=uuid4(), created_at=datetime.utcnow())
+    db.add(new_device)
+    await db.commit()
+    await db.refresh(new_device)
     return new_device
 
 @app.post("/alerts", response_model=schema.Alert) 
-def receive_alert(alert: schema.AlertCreate): 
+async def receive_alert(alert: schema.AlertCreate, db: AsyncSession = Depends(get_db)): 
     """
     (This endpoint is still useful for testing with HTTP)
     Receives a new alert from an edge device.
     """
-    new_alert = schema.Alert( 
-        **alert.dict(),
-        id=len(db_alerts) + 1
-    )
-    db_alerts.append(new_alert)
-    print(f"New Alert Received (via HTTP): {new_alert.alert_type}")
-    return new_alert
+    new_alert = models.Alert(**alert.dict(), id=uuid4())
+    db.add(new_alert)
+    await db.commit()
+    await db.refresh(new_alert)
+    print(new_alert)
+    return schema.Alert.from_orm(new_alert)
 
 @app.get("/alerts", response_model=List[schema.Alert]) 
-def get_all_alerts():
+async def get_all_alerts(db: AsyncSession = Depends(get_db)):
     """Retrieve a list of all alerts."""
-    return db_alerts
+    result = await db.execute(select(models.Alert))
+    alerts = result.scalars().all()
+    return alerts
