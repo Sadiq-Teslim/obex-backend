@@ -4,7 +4,7 @@ from typing import List
 from app import schema, models
 import os
 from contextlib import asynccontextmanager
-from config.database import connect_db, close_db, AsyncSessionLocal
+from app.config.database import connect_db, close_db, AsyncSessionLocal
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from uuid import uuid4
