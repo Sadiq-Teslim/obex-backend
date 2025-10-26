@@ -4,7 +4,7 @@ from sqlalchemy.orm import declarative_base
 import uuid
 from datetime import datetime
 
-from config.database import Base
+from app.config.database import Base
 
 class Device(Base):
     __tablename__ = "devices"
