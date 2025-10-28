@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>OBEX WebSocket Test</title>
+</head>
+<body>
+    <h1>OBEX Real-time Alerts Test</h1>
+    <div>
+        <button onclick="connectWebSocket()">Connect WebSocket</button>
+        <button onclick="disconnectWebSocket()">Disconnect</button>
+        <span id="status">Disconnected</span>
+    </div>
+    
+    <div>
+        <h3>Live Alerts:</h3>
+        <div id="alerts" style="border: 1px solid #ccc; padding: 10px; height: 400px; overflow-y: scroll;"></div>
+    </div>
+
+    <script>
+        let websocket = null;
+
+        function connectWebSocket() {
+            // Close existing connection if any
+            if (websocket) {
+                websocket.close();
+            }
+
+            // Connect to WebSocket
+            websocket = new WebSocket('ws://localhost:8000/ws/alerts');
+            
+            websocket.onopen = function(event) {
+                document.getElementById('status').innerHTML = 'Connected';
+                document.getElementById('status').style.color = 'green';
+                addAlert('System', 'Connected to WebSocket server');
+            };
+            
+            websocket.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                if (data.type === 'new_alert') {
+                    addAlert('ALERT', `🚨 ${data.alert.alert_type} from device ${data.alert.device_id}`);
+                    console.log('Full alert data:', data.alert);
+                } else {
+                    addAlert('System', event.data);
+                }
+            };
+            
+            websocket.onclose = function(event) {
+                document.getElementById('status').innerHTML = '❌ Disconnected';
+                document.getElementById('status').style.color = 'red';
+                addAlert('System', 'Disconnected from WebSocket server');
+            };
+            
+            websocket.onerror = function(error) {
+                console.error('WebSocket error:', error);
+                addAlert('System', 'WebSocket error occurred');
+            };
+        }
+
+        function disconnectWebSocket() {
+            if (websocket) {
+                websocket.close();
+                websocket = null;
+            }
+        }
+
+        function addAlert(sender, message) {
+            const alertsDiv = document.getElementById('alerts');
+            const alertElement = document.createElement('div');
+            alertElement.innerHTML = `<strong>${sender}:</strong> ${message} <small>${new Date().toLocaleTimeString()}</small>`;
+            alertsDiv.appendChild(alertElement);
+            alertsDiv.scrollTop = alertsDiv.scrollHeight;
+        }
+
+        // Auto-connect when page loads
+        window.onload = connectWebSocket;
+    </script>
+</body>
+</html>
