@@ -7,7 +7,7 @@ import os
 import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-from config.database import Base  # your Base
+from app.config.database import Base  # Changed to use app.config
 import app.models  # import all models here
 
 config = context.config

@@ -1,78 +1,374 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>OBEX WebSocket Test</title>
+    <meta charset="UTF-8">
+    <title>Obex Edge - Live Alert Feed</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-bg: #f8f9fa;
+            --color-card: #ffffff;
+            --color-text: #212529;
+            --color-text-light: #6c757d;
+            --color-border: #dee2e6;
+            --color-brand: #0d6efd;
+            --color-brand-light: #cfe2ff;
+            --color-green: #198754;
+            --color-red: #dc3545;
+            --color-yellow: #ffc107;
+            
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--color-border);
+            margin-bottom: 1.5rem;
+        }
+
+        h1 {
+            color: var(--color-text);
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        #status-container {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem 1rem;
+            border-radius: 99px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        #status-container.disconnected {
+            background-color: #ffebee;
+            color: var(--color-red);
+        }
+        
+        #status-container.connected {
+            background-color: #e6f7eb;
+            color: var(--color-green);
+        }
+
+        #status-light {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: var(--color-red);
+            transition: all 0.3s ease;
+        }
+        
+        #status-container.connected #status-light {
+            background-color: var(--color-green);
+            animation: pulse 1.5s infinite;
+        }
+
+        .button-group {
+            margin-bottom: 1.5rem;
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .button {
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            font-size: 0.9rem;
+            padding: 0.6rem 1rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .button-primary {
+            background-color: var(--color-brand);
+            color: white;
+        }
+        .button-primary:hover {
+            background-color: #0b5ed7;
+            box-shadow: var(--shadow-md);
+        }
+
+        .button-secondary {
+            background-color: var(--color-card);
+            color: var(--color-text);
+            border: 1px solid var(--color-border);
+        }
+        .button-secondary:hover {
+            background-color: #f8f9fa;
+            box-shadow: var(--shadow-md);
+        }
+
+        #alerts-container {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* This is the new "Alert Card" styling */
+        .alert-card {
+            background-color: var(--color-card);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            box-shadow: var(--shadow-md);
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 1rem;
+            padding: 1.25rem;
+            /* Animation */
+            animation: fadeInUp 0.5s ease forwards;
+        }
+        
+        .alert-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .alert-icon svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .alert-content h3 {
+            margin-top: 0;
+            margin-bottom: 0.25rem;
+            text-transform: capitalize;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--color-text);
+        }
+        
+        .alert-meta {
+            font-size: 0.85rem;
+            color: var(--color-text-light);
+            margin-bottom: 0.75rem;
+        }
+        
+        .alert-meta span {
+            margin-right: 1rem;
+        }
+
+        pre {
+            background-color: #f1f3f5;
+            padding: 0.75rem;
+            border-radius: 6px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 0.85rem;
+            color: #495057;
+        }
+
+        /* Alert Types */
+        .alert-card.system { border-left: 5px solid var(--color-text-light); }
+        .alert-card.system .alert-icon { background-color: #e9ecef; color: var(--color-text-light); }
+
+        .alert-card.weapon { border-left: 5px solid var(--color-red); }
+        .alert-card.weapon .alert-icon { background-color: #ffebee; color: var(--color-red); }
+        
+        .alert-card.fatigue { border-left: 5px solid var(--color-yellow); }
+        .alert-card.fatigue .alert-icon { background-color: #fff8e1; color: #f57f17; }
+        
+        .alert-card.passenger { border-left: 5px solid var(--color-brand); }
+        .alert-card.passenger .alert-icon { background-color: var(--color-brand-light); color: var(--color-brand); }
+
+        /* Animations */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+    </style>
 </head>
 <body>
-    <h1>OBEX Real-time Alerts Test</h1>
-    <div>
-        <button onclick="connectWebSocket()">Connect WebSocket</button>
-        <button onclick="disconnectWebSocket()">Disconnect</button>
-        <span id="status">Disconnected</span>
-    </div>
-    
-    <div>
-        <h3>Live Alerts:</h3>
-        <div id="alerts" style="border: 1px solid #ccc; padding: 10px; height: 400px; overflow-y: scroll;"></div>
+
+    <div class="container">
+        <header>
+            <h1>Obex Edge Live Alert Feed</h1>
+            <div id="status-container" class="disconnected">
+                <div id="status-light"></div>
+                <span id="status-text">Disconnected</span>
+            </div>
+        </header>
+
+        <main>
+            <div class="button-group">
+                <button class="button button-primary" onclick="connectWebSocket()">Connect</button>
+                <button class="button button-secondary" onclick="disconnectWebSocket()">Disconnect</button>
+            </div>
+            
+            <h3>Live Alerts:</h3>
+            <!-- New alerts will be prepended here, and flex-column-reverse will show them at the top -->
+            <div id="alerts-container"></div>
+        </main>
     </div>
 
     <script>
         let websocket = null;
+        
+        // --- Icon SVGs ---
+        const ICONS = {
+            system: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" /></svg>`,
+            weapon: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.008v.008H12v-.008z" /></svg>`,
+            fatigue: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.008v.008H12v-.008z" /></svg>`,
+            passenger: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>`,
+            default: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.008v.008H12v-.008z" /></svg>`
+        }
 
         function connectWebSocket() {
-            // Close existing connection if any
             if (websocket) {
                 websocket.close();
             }
 
             // Connect to WebSocket
+            const statusContainer = document.getElementById('status-container');
+            const statusText = document.getElementById('status-text');
             websocket = new WebSocket('ws://localhost:8000/ws/alerts');
             
             websocket.onopen = function(event) {
-                document.getElementById('status').innerHTML = 'Connected';
-                document.getElementById('status').style.color = 'green';
-                addAlert('System', 'Connected to WebSocket server');
+                statusText.textContent = 'Connected';
+                statusContainer.className = 'connected';
+                createAlertCard({ alert_type: 'system_message', message: 'Connected to WebSocket server' });
             };
             
             websocket.onmessage = function(event) {
                 const data = JSON.parse(event.data);
                 if (data.type === 'new_alert') {
-                    addAlert('ALERT', `🚨 ${data.alert.alert_type} from device ${data.alert.device_id}`);
+                    createAlertCard(data.alert); 
                     console.log('Full alert data:', data.alert);
+                } else if (data.type === 'pong') {
+                    console.log("Pong received: " + data.message);
                 } else {
-                    addAlert('System', event.data);
+                    createAlertCard({ alert_type: 'system_message', message: event.data });
                 }
             };
             
             websocket.onclose = function(event) {
-                document.getElementById('status').innerHTML = '❌ Disconnected';
-                document.getElementById('status').style.color = 'red';
-                addAlert('System', 'Disconnected from WebSocket server');
+                statusText.textContent = 'Disconnected';
+                statusContainer.className = 'disconnected';
+                createAlertCard({ alert_type: 'system_message', message: 'Disconnected from WebSocket server' });
+                websocket = null;
             };
             
             websocket.onerror = function(error) {
                 console.error('WebSocket error:', error);
-                addAlert('System', 'WebSocket error occurred');
+                statusText.textContent = 'Error';
+                statusContainer.className = 'disconnected';
+                createAlertCard({ alert_type: 'system_message', message: 'WebSocket error occurred' });
             };
         }
 
         function disconnectWebSocket() {
             if (websocket) {
                 websocket.close();
-                websocket = null;
             }
         }
 
-        function addAlert(sender, message) {
-            const alertsDiv = document.getElementById('alerts');
-            const alertElement = document.createElement('div');
-            alertElement.innerHTML = `<strong>${sender}:</strong> ${message} <small>${new Date().toLocaleTimeString()}</small>`;
-            alertsDiv.appendChild(alertElement);
-            alertsDiv.scrollTop = alertsDiv.scrollHeight;
+        function createAlertCard(alert) {
+            const alertsDiv = document.getElementById('alerts-container');
+            const card = document.createElement('div');
+            card.className = 'alert-card';
+            
+            let typeKey = alert.alert_type.split('_')[0]; // "weapon", "fatigue", etc.
+            if (!ICONS[typeKey]) {
+                typeKey = (alert.alert_type === 'system_message') ? 'system' : 'default';
+            }
+            card.classList.add(typeKey);
+
+            let cardHTML = '';
+            let iconSVG = ICONS[typeKey];
+
+            if (alert.alert_type === 'system_message') {
+                cardHTML = `
+                    <div class="alert-icon">${iconSVG}</div>
+                    <div class="alert-content">
+                        <h3>System Message</h3>
+                        <div class="alert-meta">
+                            <span><strong>Time:</strong> ${new Date().toLocaleString()}</span>
+                        </div>
+                        <p>${alert.message}</p>
+                    </div>
+                `;
+            } else {
+                cardHTML = `
+                    <div class="alert-icon">${iconSVG}</div>
+                    <div class="alert-content">
+                        <h3>${alert.alert_type.replace(/_/g, " ")}</h3>
+                        <div class="alert-meta">
+                            <span><strong>Device:</strong> ${alert.device_id}</span>
+                            <span><strong>Time:</strong> ${new Date(alert.timestamp).toLocaleString()}</span>
+                        </div>
+                        <strong>Location:</strong> ${alert.location_lat}, ${alert.location_lon}<br>
+                        <strong>Payload:</strong> <pre>${JSON.stringify(alert.payload, null, 2)}</pre>
+                    </div>
+                `;
+            }
+            
+            card.innerHTML = cardHTML;
+            alertsDiv.prepend(card); // Add new alerts to the top
         }
 
-        // Auto-connect when page loads
-        window.onload = connectWebSocket;
+        // Function to fetch existing alerts
+        async function fetchExistingAlerts() {
+            try {
+                const response = await fetch('/api/alerts');
+                const alerts = await response.json();
+                // Display alerts in reverse chronological order
+                alerts.reverse().forEach(alert => createAlertCard(alert));
+            } catch (error) {
+                console.error('Error fetching alerts:', error);
+                createAlertCard({ 
+                    alert_type: 'system_message', 
+                    message: 'Failed to load existing alerts' 
+                });
+            }
+        }
+
+        // Initialize everything when page loads
+        window.onload = function() {
+            connectWebSocket();
+            fetchExistingAlerts();
+        };
     </script>
 </body>
 </html>
+

@@ -1,0 +1,66 @@
+"""MQTT client and message handling functionality."""
+
+import json
+import asyncio
+import paho.mqtt.client as mqtt
+from app.core.settings import MQTT_CONFIG
+from app.schemas.alerts import AlertCreate
+from app.services.alert_processor import process_and_save_alert
+
+
+class MQTTService:
+    """MQTT client service for handling alert messages."""
+    
+    def __init__(self):
+        self.client = mqtt.Client()
+        if MQTT_CONFIG["USERNAME"] and MQTT_CONFIG["PASSWORD"]:
+            self.client.username_pw_set(MQTT_CONFIG["USERNAME"], MQTT_CONFIG["PASSWORD"])
+            # Check if host is Supabase to enable TLS
+            if "supabase.com" in MQTT_CONFIG["BROKER_HOST"]:
+                print("Enabling TLS for Supabase MQTT.")
+                self.client.tls_set()
+                
+        self.client.on_connect = self._on_connect
+        self.client.on_message = self._on_message
+    
+    def _on_connect(self, client, userdata, flags, rc):
+        """Callback for MQTT broker connection."""
+        if rc == 0:
+            print(f"Successfully connected to MQTT Broker at {MQTT_CONFIG['BROKER_HOST']}")
+            client.subscribe(MQTT_CONFIG["ALERTS_TOPIC"])
+        else:
+            print(f"Failed to connect to MQTT Broker, return code {rc}")
+    
+    def _on_message(self, client, userdata, msg):
+        """Callback for MQTT message reception."""
+        print(f"Received message on topic {msg.topic}")
+        
+        try:
+            # Parse and validate the message
+            payload = json.loads(msg.payload.decode())
+            alert_data = AlertCreate(**payload)
+            
+            # Process alert in a new event loop for thread safety
+            asyncio.run(process_and_save_alert(alert_data, source="MQTT"))
+            
+        except json.JSONDecodeError:
+            print("Error: Received MQTT message is not valid JSON")
+        except Exception as e:
+            print(f"Error processing MQTT message: {e}")
+    
+    def start(self):
+        """Initialize and start the MQTT client loop."""
+        try:
+            print("Initializing MQTT connection...")
+            self.client.connect(MQTT_CONFIG["BROKER_HOST"], MQTT_CONFIG["BROKER_PORT"], 60)
+            self.client.loop_forever()  # Blocking call that processes network traffic
+        except Exception as e:
+            print(f"Critical MQTT connection failure: {e}")
+    
+    def stop(self):
+        """Disconnect the MQTT client."""
+        print("Disconnecting from MQTT broker...")
+        self.client.disconnect()
+
+# Create global instance for app-wide use
+mqtt_service = MQTTService()
