@@ -1,9 +1,11 @@
 """Device endpoint handlers."""
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.db.session import get_db_session
 from app.models import Device
 from app.schemas.devices import DeviceCreate, Device as DeviceSchema
-from app.db.session import get_db_session
 
 router = APIRouter(
     prefix="/api/devices",
@@ -19,7 +21,10 @@ router = APIRouter(
     Returns the created device with auto-generated ID.""",
     status_code=201
 )
-async def register_device(device: DeviceCreate, db=get_db_session):
+async def register_device(
+    device: DeviceCreate,
+    db: AsyncSession = Depends(get_db_session),
+):
     """
     Register a new edge device.
     
@@ -27,9 +32,8 @@ async def register_device(device: DeviceCreate, db=get_db_session):
     - **vehicle_make**: Optional vehicle manufacturer
     - **vehicle_model**: Optional vehicle model
     """
-    async with db as session:
-        new_device = Device(**device.model_dump())
-        session.add(new_device)
-        await session.commit()
-        await session.refresh(new_device)
-        return new_device
+    new_device = Device(**device.model_dump())
+    db.add(new_device)
+    await db.commit()
+    await db.refresh(new_device)
+    return new_device

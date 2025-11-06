@@ -1,7 +1,7 @@
 import json
 import uuid
-from datetime import datetime, timedelta
-from typing import Any, Dict, List
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional
 
 import pytest
 import pytest_asyncio
@@ -37,7 +37,7 @@ class TestUtils:
         return {
             "device_id": device_id,
             "alert_type": alert_type,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "location_lat": 6.5244,
             "location_lon": 3.3792,
             "payload": {
@@ -49,7 +49,7 @@ class TestUtils:
     @staticmethod
     async def create_test_device(
         session: AsyncSession,
-        device_data: Dict[str, Any] = None
+        device_data: Optional[Dict[str, Any]] = None
     ) -> Device:
         if device_data is None:
             device_data = TestUtils.create_test_device_data()
@@ -64,7 +64,7 @@ class TestUtils:
     @staticmethod
     async def create_test_alert(
         session: AsyncSession,
-        alert_data: Dict[str, Any] = None
+        alert_data: Optional[Dict[str, Any]] = None
     ) -> Alert:
         if alert_data is None:
             alert_data = TestUtils.create_test_alert_data()
@@ -85,6 +85,7 @@ class TestUtils:
         devices = []
         alerts = []
         alert_types = ALERT_TYPES
+        base_time = datetime.now(timezone.utc)
 
         # Create devices
         for i in range(num_devices):
@@ -100,7 +101,7 @@ class TestUtils:
                 alert_type = alert_types[j % len(alert_types)]
                 alert_data = TestUtils.create_test_alert_data(device_id, alert_type)
                 alert_data["timestamp"] = (
-                    datetime.utcnow() - timedelta(hours=j)
+                    base_time - timedelta(hours=j)
                 ).isoformat()
                 
                 alert = await TestUtils.create_test_alert(session, alert_data)
@@ -115,7 +116,8 @@ class TestUtils:
     def assert_alert_response(data: Dict[str, Any], expected_alert: Alert) -> None:
         assert data["device_id"] == expected_alert.device_id
         assert data["alert_type"] == expected_alert.alert_type
-        assert datetime.fromisoformat(data["timestamp"]) == expected_alert.timestamp
+        response_timestamp = data["timestamp"].replace("Z", "+00:00")
+        assert datetime.fromisoformat(response_timestamp) == expected_alert.timestamp
         assert data.get("location_lat") == expected_alert.location_lat
         assert data.get("location_lon") == expected_alert.location_lon
 
