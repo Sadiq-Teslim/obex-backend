@@ -15,9 +15,9 @@ class MQTTService:
         self.client = mqtt.Client()
         if MQTT_CONFIG["USERNAME"] and MQTT_CONFIG["PASSWORD"]:
             self.client.username_pw_set(MQTT_CONFIG["USERNAME"], MQTT_CONFIG["PASSWORD"])
-            # Check if host is Supabase to enable TLS
-            if "supabase.com" in MQTT_CONFIG["BROKER_HOST"]:
-                print("Enabling TLS for Supabase MQTT.")
+            # Check if host is HiveMQ to enable TLS
+            if "hivemq.cloud" in MQTT_CONFIG["BROKER_HOST"]:
+                print("Enabling TLS for HiveMQ MQTT.")
                 self.client.tls_set()
                 
         self.client.on_connect = self._on_connect
