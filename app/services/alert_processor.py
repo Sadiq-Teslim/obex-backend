@@ -27,12 +27,13 @@ async def process_and_save_alert(alert_data: AlertCreate, source: str):
     """
     async with AsyncSessionLocal() as session:
         try:
+            print(alert_data)
             # Convert Pydantic model to dict
             alert_dict = alert_data.model_dump()
             print(f"Processing alert data from {source}: {alert_dict}")
             
             # Generate UUID and convert to string for SQLite compatibility
-            alert_id = str(uuid4())
+            alert_id = uuid4()
             
             # Create SQLAlchemy model instance
             new_alert = Alert(
