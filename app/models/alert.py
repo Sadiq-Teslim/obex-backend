@@ -1,7 +1,7 @@
 """Alert models for the database."""
 
 from sqlalchemy import Column, String, Float, TIMESTAMP
-from sqlalchemy.dialects.postgresql import UUID, JSOn
+from sqlalchemy.dialects.postgresql import UUID, JSON
 import json
 import uuid
 
