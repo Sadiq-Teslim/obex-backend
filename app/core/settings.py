@@ -1,22 +1,81 @@
-"""Application settings and configuration."""
+"""Application settings and configuration helpers."""
 
-import os
-from dotenv import load_dotenv
+from functools import lru_cache
+from typing import Optional
 
-# Load .env file
-load_dotenv()
+from pydantic import Field
+from pydantic_settings import BaseSettings
 
-# MQTT Configuration
+
+class Settings(BaseSettings):
+    """Pydantic powered settings loaded from environment variables."""
+
+    database_url: str = Field(
+        default="sqlite+aiosqlite:///./obex.db",
+        alias="DATABASE_URL",
+        description="Primary application database URL",
+    )
+    test_database_url: str = Field(
+        default="sqlite+aiosqlite:///./test.db",
+        alias="TEST_DATABASE_URL",
+        description="Test database URL",
+    )
+
+    redis_host: str = Field(default="localhost", alias="REDIS_HOST")
+    redis_port: int = Field(default=6379, alias="REDIS_PORT")
+    redis_db: int = Field(default=0, alias="REDIS_DB")
+    redis_password: Optional[str] = Field(
+        default=None,
+        alias="REDIS_PASSWORD",
+    )
+    cache_prefix: str = Field(default="obex", alias="CACHE_PREFIX")
+    cache_ttl: int = Field(default=3600, alias="CACHE_TTL")
+
+    mqtt_broker_host: str = Field(
+        default="test.mosquitto.org",
+        alias="MQTT_BROKER_HOST",
+    )
+    mqtt_broker_port: int = Field(default=1883, alias="MQTT_BROKER_PORT")
+    mqtt_alerts_topic: str = Field(default="obex/alerts", alias="MQTT_ALERTS_TOPIC")
+    mqtt_username: Optional[str] = Field(default=None, alias="MQTT_USERNAME")
+    mqtt_password: Optional[str] = Field(default=None, alias="MQTT_PASSWORD")
+    mqtt_use_tls: bool = Field(default=False, alias="MQTT_USE_TLS")
+
+    class Config:
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+        case_sensitive = False
+
+
+@lru_cache
+def get_settings() -> Settings:
+    """Return a cached Settings instance."""
+    return Settings()
+
+
+settings = get_settings()
+
+
 MQTT_CONFIG = {
-    "BROKER_HOST": os.getenv("MQTT_BROKER_HOST", "test.mosquitto.org"),
-    "BROKER_PORT": int(os.getenv("MQTT_BROKER_PORT", 1883)),
-    "ALERTS_TOPIC": os.getenv("MQTT_ALERTS_TOPIC", "obex/alerts"),
-    "USERNAME": os.getenv("MQTT_USERNAME", ""),
-    "PASSWORD": os.getenv("MQTT_PASSWORD", ""),
-    "USE_TLS": os.getenv("MQTT_USE_TLS", "false").lower() in ("1", "true", "yes")
+    "BROKER_HOST": settings.mqtt_broker_host,
+    "BROKER_PORT": settings.mqtt_broker_port,
+    "ALERTS_TOPIC": settings.mqtt_alerts_topic,
+    "USERNAME": settings.mqtt_username or "",
+    "PASSWORD": settings.mqtt_password or "",
+    "USE_TLS": bool(settings.mqtt_use_tls),
 }
 
-# API Configuration
+
+REDIS_CONFIG = {
+    "HOST": settings.redis_host,
+    "PORT": settings.redis_port,
+    "DB": settings.redis_db,
+    "PASSWORD": settings.redis_password,
+    "PREFIX": settings.cache_prefix,
+    "DEFAULT_TIMEOUT": settings.cache_ttl,
+}
+
+
 API_CONFIG = {
     "TITLE": "OBEX EDGE Backend API",
     "DESCRIPTION": """
@@ -59,5 +118,5 @@ API_CONFIG = {
     },
     "LICENSE": {
         "name": "MIT",
-    }
+    },
 }

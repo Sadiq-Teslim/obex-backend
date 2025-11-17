@@ -10,7 +10,7 @@ from app.core.settings import API_CONFIG
 from app.config.database import connect_db, close_db
 from app.services.mqtt_client import mqtt_service
 
-from app.api.endpoints import alerts, devices, websocket, home
+from app.api.endpoints import alerts, analytics, devices, websocket, home
 
 
 @asynccontextmanager
@@ -64,6 +64,7 @@ def create_app() -> FastAPI:
     app.include_router(home.router)
     app.include_router(alerts.router)
     app.include_router(devices.router)
+    app.include_router(analytics.router)
     app.include_router(websocket.router)
 
     return app

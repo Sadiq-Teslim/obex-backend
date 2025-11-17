@@ -1,7 +1,9 @@
 """Alert endpoint handlers."""
 
 from typing import List
-from fastapi import APIRouter, HTTPException
+
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.models import Alert
@@ -51,14 +53,12 @@ async def receive_alert(alert_data: AlertCreate):
     summary="Get all alerts",
     description="Retrieve all security alerts from the database, ordered by timestamp (newest first)."
 )
-async def get_all_alerts(db=get_db_session):
+async def get_all_alerts(db: AsyncSession = Depends(get_db_session)):
     """
     Retrieve a list of all alerts from the database.
     
     The alerts are sorted by timestamp in descending order (newest first).
     For real-time notifications, connect to the WebSocket endpoint: `/ws/alerts`
     """
-    async with db as session:
-        result = await session.execute(select(Alert).order_by(Alert.timestamp.desc()))
-        alerts = result.scalars().all()
-        return alerts
+    result = await db.execute(select(Alert).order_by(Alert.timestamp.desc()))
+    return result.scalars().all()
