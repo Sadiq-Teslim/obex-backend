@@ -66,6 +66,8 @@ def create_app() -> FastAPI:
     app.include_router(devices.router)
     app.include_router(analytics.router)
     app.include_router(websocket.router)
+    from app.api.endpoints import model_logs
+    app.include_router(model_logs.router)
 
     return app
 

@@ -9,13 +9,18 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from app.config.database import Base  # Changed to use app.config
 import app.models  # import all models here
+from app.models.model_log import ModelLog  # Ensure Alembic sees ModelLog
 
 config = context.config
+if config.config_file_name is None:
+    raise RuntimeError("Alembic config file name is not set. Check your Alembic configuration.")
 fileConfig(config.config_file_name)
 target_metadata = Base.metadata
 
 def run_migrations_offline():
     url = config.get_main_option("sqlalchemy.url")
+    if url is None:
+        raise RuntimeError("sqlalchemy.url is not set in Alembic config. Check your Alembic configuration.")
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -28,7 +33,9 @@ def run_migrations_offline():
 
 
 def run_migrations_online():
-    connectable = create_async_engine(config.get_main_option("sqlalchemy.url"))
+    # Force SQLite for migration
+    url = "sqlite+aiosqlite:///./obex.db"
+    connectable = create_async_engine(url)
 
     async def do_run_migrations():
         async with connectable.connect() as connection:
