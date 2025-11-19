@@ -22,9 +22,15 @@ async def seeded_alerts(db_session):
     ]
 
     alerts = []
+    import os
+    test_db_dialect = os.environ.get("TEST_DB_DIALECT", "sqlite")
     for index, alert_type in enumerate(alert_types):
+        if test_db_dialect == "sqlite":
+            alert_id = str(uuid4())
+        else:
+            alert_id = uuid4()
         alert = Alert(
-            id=str(uuid4()),
+            id=alert_id,
             device_id=f"device-{index}",
             timestamp=base_time - timedelta(minutes=index * 10),
             alert_type=alert_type,

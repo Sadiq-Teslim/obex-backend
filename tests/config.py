@@ -8,7 +8,7 @@ class TestSettings(Settings):
     test_database_url: str = Field(default="sqlite+aiosqlite:///./test.db", alias="TEST_DATABASE_URL")
     redis_db: int = Field(default=15, alias="REDIS_DB")
     cache_prefix: str = Field(default="test", alias="CACHE_PREFIX")
-
+ 
     class Config(Settings.Config):
         env_file = None
         case_sensitive = True
