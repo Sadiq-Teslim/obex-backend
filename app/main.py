@@ -68,6 +68,9 @@ def create_app() -> FastAPI:
     app.include_router(websocket.router)
     from app.api.endpoints import model_logs
     app.include_router(model_logs.router)
+    # Auth endpoints (signup/login)
+    from app.api.endpoints import auth
+    app.include_router(auth.router)
 
     return app
 
