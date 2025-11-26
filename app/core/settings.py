@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     )
     cache_prefix: str = Field(default="obex", alias="CACHE_PREFIX")
     cache_ttl: int = Field(default=3600, alias="CACHE_TTL")
+    # JWT settings for authentication
+    jwt_secret: str = Field(default="change-me-in-prod", alias="JWT_SECRET")
+    jwt_algorithm: str = Field(default="HS256", alias="JWT_ALGORITHM")
+    jwt_exp_minutes: int = Field(default=60, alias="JWT_EXP_MINUTES")
 
     mqtt_broker_host: str = Field(
         default="test.mosquitto.org",

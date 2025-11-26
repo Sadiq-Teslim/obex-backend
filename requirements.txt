@@ -20,3 +20,6 @@ redis>=5.0.1            # Redis client with asyncio support
 # Configuration
 python-dotenv>=1.0.0
 pydantic-settings>=2.0.3
+passlib[argon2]>=1.7.4
+PyJWT>=2.8.0
+argon2-cffi>=23.2.0

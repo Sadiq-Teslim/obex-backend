@@ -2,6 +2,7 @@
 from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel
+from pydantic import validator
 
 
 class SignupRequest(BaseModel):
@@ -10,6 +11,16 @@ class SignupRequest(BaseModel):
     ipAddress: Optional[str] = None
     path: Optional[str] = None
     port: Optional[int] = None
+    @validator("password")
+    def password_complexity(cls, v: str) -> str:
+        if not v or len(v) < 8:
+            raise ValueError("password must be at least 8 characters")
+        if not any(c.isdigit() for c in v):
+            raise ValueError("password must include a number")
+        if not any(c.isalpha() for c in v):
+            raise ValueError("password must include a letter")
+        return v
+
 
 
 class LoginRequest(BaseModel):

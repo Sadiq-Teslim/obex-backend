@@ -1,37 +1,30 @@
-"""Authentication service: password hashing and user CRUD for signup/login."""
-import os
-import hashlib
-import binascii
+"""Authentication service: Argon2 password hashing, lockout and user CRUD."""
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 
-from sqlalchemy import select
+from passlib.hash import argon2
+from sqlalchemy import select, update
 
 from app.models.user import User
 from app.db.session import AsyncSessionLocal
 
 
-def _hash_password(password: str, salt: bytes) -> str:
-    """Hash a password with provided salt using PBKDF2-HMAC-SHA256."""
-    dk = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, 100_000)
-    return binascii.hexlify(dk).decode("ascii")
+MAX_FAILED_ATTEMPTS = 5
+LOCK_MINUTES = 15
 
 
 async def create_user(username: str, password: str, ip_address: Optional[str] = None, path: Optional[str] = None, port: Optional[int] = None) -> User:
     """Create a new user. Raises ValueError if username exists."""
     async with AsyncSessionLocal() as session:
-        # check existing
         q = select(User).where(User.username == username)
         result = await session.execute(q)
         existing = result.scalar_one_or_none()
         if existing:
             raise ValueError("username already exists")
 
-        salt = os.urandom(16)
-        password_hash = _hash_password(password, salt)
+        password_hash = argon2.hash(password)
         user = User(
             username=username,
-            password_salt=binascii.hexlify(salt).decode("ascii"),
             password_hash=password_hash,
             ip_address=ip_address,
             path=path,
@@ -44,16 +37,48 @@ async def create_user(username: str, password: str, ip_address: Optional[str] = 
         return user
 
 
-async def authenticate(username: str, password: str) -> Optional[User]:
-    """Return user if authentication succeeds, otherwise None."""
+async def authenticate(username: str, password: str, ip_address: Optional[str] = None) -> Optional[User]:
+    """Return user on successful authentication, otherwise None. Handles lockout and failed attempts."""
     async with AsyncSessionLocal() as session:
         q = select(User).where(User.username == username)
         result = await session.execute(q)
         user = result.scalar_one_or_none()
         if not user:
             return None
-        salt = binascii.unhexlify(user.password_salt.encode("ascii"))
-        candidate_hash = _hash_password(password, salt)
-        if hashlib.compare_digest(candidate_hash, user.password_hash):
+
+        now = datetime.utcnow()
+        if user.locked_until and user.locked_until > now:
+            # account locked
+            return None
+
+        # verify password
+        try:
+            verified = argon2.verify(password, user.password_hash)
+        except Exception:
+            verified = False
+
+        if verified:
+            # reset failed attempts and update last login
+            await session.execute(
+                update(User)
+                .where(User.id == user.id)
+                .values(failed_attempts=0, locked_until=None, last_login_at=now, last_login_ip=ip_address)
+            )
+            await session.commit()
+            # refresh user
+            await session.refresh(user)
             return user
+
+        # failed attempt
+        new_failed = user.failed_attempts + 1
+        locked_until = None
+        if new_failed >= MAX_FAILED_ATTEMPTS:
+            locked_until = now + timedelta(minutes=LOCK_MINUTES)
+
+        await session.execute(
+            update(User)
+            .where(User.id == user.id)
+            .values(failed_attempts=new_failed, locked_until=locked_until)
+        )
+        await session.commit()
         return None
