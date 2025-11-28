@@ -10,6 +10,7 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from app.config.database import Base  # Changed to use app.config
 import app.models  # import all models here
 from app.models.model_log import ModelLog  # Ensure Alembic sees ModelLog
+from app.core.settings import settings
 
 config = context.config
 if config.config_file_name is None:
@@ -33,9 +34,22 @@ def run_migrations_offline():
 
 
 def run_migrations_online():
-    # Force SQLite for migration
-    url = "sqlite+aiosqlite:///./obex.db"
-    connectable = create_async_engine(url)
+    # Determine database URL: prefer DIRECT_DATABASE_URL (direct connection), then
+    # environment DATABASE_URL, then alembic.ini, then project settings
+    url = (
+        os.getenv("DIRECT_DATABASE_URL")
+        or os.getenv("DATABASE_URL")
+        or config.get_main_option("sqlalchemy.url")
+        or settings.database_url
+    )
+    if url is None:
+        raise RuntimeError("No database URL found for running migrations")
+    # For asyncpg connections to cloud Postgres (e.g., Supabase, Render), ensure SSL/TLS is enabled.
+    if url.startswith("postgresql+asyncpg"):
+        # asyncpg accepts an `ssl` connect arg rather than `sslmode` in the URL
+        connectable = create_async_engine(url, connect_args={"ssl": True, "statement_cache_size": 0})
+    else:
+        connectable = create_async_engine(url)
 
     async def do_run_migrations():
         async with connectable.connect() as connection:

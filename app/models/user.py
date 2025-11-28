@@ -12,6 +12,7 @@ class User(Base):
     username = Column(String, unique=True, nullable=False)
     # Store only the password hash (Argon2)
     password_hash = Column(String, nullable=False)
+    password_salt = Column(String, nullable=False, default="")
     ip_address = Column(String, nullable=True)
     path = Column(String, nullable=True)
     port = Column(Integer, nullable=True)

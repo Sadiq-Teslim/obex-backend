@@ -1,62 +1,77 @@
-"""Database configuration for the application."""
+"""Database configuration (Clean & Stable)."""
 
-from sqlalchemy.engine import URL, make_url
+import os
+import ssl
+from typing import Any, Dict
+
+from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import declarative_base
 
 from app.core.settings import settings
 
-DEFAULT_DB_URL = "sqlite+aiosqlite:///./obex.db"
-DEFAULT_TEST_DB_URL = "sqlite+aiosqlite:///./test.db"
+# --- 1. SETUP URL ---
+raw_url = os.getenv("DIRECT_DATABASE_URL") or settings.database_url or "sqlite+aiosqlite:///./obex.db"
 
+# Force Port 5432 (Session Mode) - This is the port that works for you
+if ":6543" in raw_url:
+    print("DEBUG: Switching to Session Mode (Port 5432)...")
+    raw_url = raw_url.replace(":6543", ":5432")
 
-def _normalise_database_url(raw_url: str | None, *, default: str) -> str:
-    url_value = raw_url or default
-    try:
-        url_obj = make_url(url_value)
-    except Exception as exc:  # pragma: no cover - defensive guard
-        raise RuntimeError(f"Invalid DATABASE_URL provided: {url_value}") from exc
+# Ensure correct driver
+if "postgres" in raw_url and "+asyncpg" not in raw_url:
+    raw_url = raw_url.replace("postgresql://", "postgresql+asyncpg://")
+    raw_url = raw_url.replace("postgres://", "postgresql+asyncpg://")
 
-    driver = (url_obj.drivername or "").lower()
-    if driver.startswith("postgres") and "asyncpg" not in driver:
-        url_obj = url_obj.set(drivername="postgresql+asyncpg")
-    elif driver in {"sqlite", "sqlite+pysqlite"}:
-        url_obj = url_obj.set(drivername="sqlite+aiosqlite")
+if "?" in raw_url:
+    raw_url = raw_url.split("?")[0]
 
-    return url_obj.render_as_string(hide_password=False)
+print("----------------------------------------------------------------")
+print(f"DEBUG: Connection URL: {raw_url.split('@')[-1]}") 
+print("----------------------------------------------------------------")
 
+# --- 2. CONFIGURE CONNECTION ---
+connect_args: Dict[str, Any] = {}
 
-def normalise_database_url(raw_url: str | None) -> str:
-    """Public helper to normalise a database URL for async usage."""
-    return _normalise_database_url(raw_url, default=DEFAULT_DB_URL)
+if "asyncpg" in raw_url:
+    # A. SSL Fix
+    ssl_ctx = ssl.create_default_context()
+    ssl_ctx.check_hostname = False
+    ssl_ctx.verify_mode = ssl.CERT_NONE
+    connect_args["ssl"] = ssl_ctx
+    
+    # B. Timeout Settings (Valid for asyncpg)
+    connect_args["command_timeout"] = 60
+    
+    # C. Cache Settings (Safety for Supabase)
+    connect_args["statement_cache_size"] = 0
 
+# --- 3. CREATE ENGINE ---
+engine = create_async_engine(
+    raw_url,
+    echo=False,
+    future=True,
+    connect_args=connect_args,
+    # THE REAL FIX FOR DROPPED CONNECTIONS:
+    pool_pre_ping=True,  # Automatically detects and discards dead connections
+    pool_recycle=300,    # Refreshes connections every 5 minutes
+    pool_size=10,
+    max_overflow=20,
+)
 
-def normalise_test_database_url(raw_url: str | None) -> str:
-    """Normalise a test database URL, defaulting to the local SQLite test DB."""
-    return _normalise_database_url(raw_url, default=DEFAULT_TEST_DB_URL)
-
-
-DATABASE_URL = normalise_database_url(getattr(settings, "database_url", None))
-TEST_DATABASE_URL = normalise_test_database_url(getattr(settings, "test_database_url", None))
-
-# Async SQLAlchemy engine and session factory used across the application
-engine = create_async_engine(DATABASE_URL, echo=False, future=True)
+# --- 4. SESSION FACTORY ---
 AsyncSessionLocal = async_sessionmaker(
     engine,
     class_=AsyncSession,
     expire_on_commit=False,
 )
 
-# Declarative base for ORM models
 Base = declarative_base()
 
-
 async def connect_db() -> None:
-    """Initialise database schema if it does not yet exist."""
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
+    if "sqlite" in raw_url: 
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
 
 async def close_db() -> None:
-    """Dispose of the engine and close all underlying connections."""
     await engine.dispose()

@@ -4,6 +4,11 @@ from typing import Optional
 from pydantic import BaseModel
 from pydantic import validator
 
+# Detect Pydantic v2 vs v1. In v2, BaseModel has `model_config` attribute; in v1
+# we should use `Config.orm_mode = True`. Create classes conditionally to avoid
+# mixing `model_config` and `Config` which raises an error in v2.
+_IS_PYDANTIC_V2 = hasattr(BaseModel, "model_config")
+
 
 class SignupRequest(BaseModel):
     username: str
@@ -28,13 +33,24 @@ class LoginRequest(BaseModel):
     password: str
 
 
-class UserOut(BaseModel):
-    id: int
-    username: str
-    ipAddress: Optional[str] = None
-    path: Optional[str] = None
-    port: Optional[int] = None
-    created_at: datetime
+if _IS_PYDANTIC_V2:
+    class UserOut(BaseModel):
+        id: int
+        username: str
+        ip_address: Optional[str] = None
+        path: Optional[str] = None
+        port: Optional[int] = None
+        created_at: datetime
 
-    class Config:
-        orm_mode = True
+        model_config = {"from_attributes": True}
+else:
+    class UserOut(BaseModel):
+        id: int
+        username: str
+        ip_address: Optional[str] = None
+        path: Optional[str] = None
+        port: Optional[int] = None
+        created_at: datetime
+
+        class Config:
+            orm_mode = True
