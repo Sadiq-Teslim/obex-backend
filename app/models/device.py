@@ -4,7 +4,7 @@ from sqlalchemy import Column, String, DateTime
 import uuid
 from datetime import datetime
 
-from app.db.base import Base
+from app.config.database import Base
 
 
 class Device(Base):

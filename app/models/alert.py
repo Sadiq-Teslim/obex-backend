@@ -2,11 +2,11 @@
 
 from sqlalchemy import Column, String, Float, TIMESTAMP
 import os
-from sqlalchemy.dialects.postgresql import UUID, JSON
+from sqlalchemy.dialects.postgresql import JSON
 import json
 import uuid
 
-from app.db.base import Base
+from app.config.database import Base
 
 
 class Alert(Base):

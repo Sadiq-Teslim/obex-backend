@@ -3,7 +3,7 @@
 import json
 from datetime import datetime
 from typing import List
-from fastapi import WebSocket, WebSocketDisconnect
+from fastapi import WebSocket
 
 
 class ConnectionManager:

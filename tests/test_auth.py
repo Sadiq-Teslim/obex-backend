@@ -1,6 +1,4 @@
-import pytest
 from fastapi.testclient import TestClient
-from datetime import datetime
 
 
 def test_signup_and_login_flow(api_client: TestClient):

@@ -1,5 +1,4 @@
 from pydantic import BaseModel, field_validator, Field
-from pydantic.json_schema import JsonSchemaValue
 from typing import Optional, Literal, Dict, Any
 from datetime import datetime
 import uuid

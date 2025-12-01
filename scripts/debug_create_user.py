@@ -28,7 +28,7 @@ async def main():
             port=1234,
         )
         print('DEBUG: Created user:', getattr(user, 'id', None), getattr(user, 'username', None))
-    except Exception as e:
+    except Exception:
         print('DEBUG: exception in create_user')
         import traceback
         traceback.print_exc()

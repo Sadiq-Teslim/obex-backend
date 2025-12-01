@@ -75,7 +75,7 @@ async def process_and_save_alert(alert_data: AlertCreate, source: str):
                         "payload": alert_dict["payload"]
                     }
                 })
-                print(f"Broadcasting alert to connected clients")
+                print("Broadcasting alert to connected clients")
                 await manager.broadcast(broadcast_message)
             except Exception as broadcast_error:
                 print(f"WebSocket broadcast error: {broadcast_error}")

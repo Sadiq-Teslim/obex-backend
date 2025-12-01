@@ -1,7 +1,6 @@
 """Common FastAPI dependencies (authentication)."""
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from typing import Optional
 
 from app.services.jwt_service import decode_token
 from app.db.session import AsyncSessionLocal

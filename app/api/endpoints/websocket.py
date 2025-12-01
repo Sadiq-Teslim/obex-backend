@@ -1,7 +1,5 @@
 """WebSocket endpoint handlers."""
 
-import json
-from datetime import datetime
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from app.services.websocket import manager
 

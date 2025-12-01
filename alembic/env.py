@@ -1,5 +1,4 @@
 from logging.config import fileConfig
-from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import create_async_engine
 from alembic import context
@@ -8,8 +7,6 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from app.config.database import Base  # Changed to use app.config
-import app.models  # import all models here
-from app.models.model_log import ModelLog  # Ensure Alembic sees ModelLog
 from app.core.settings import settings
 
 config = context.config

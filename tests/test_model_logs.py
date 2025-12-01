@@ -1,7 +1,7 @@
 """
 Tests for model log ingestion and dashboard summary endpoints.
 """
-from datetime import datetime, timedelta
+from datetime import datetime
 from fastapi.testclient import TestClient
 
 def test_ingest_model_log(api_client: TestClient):

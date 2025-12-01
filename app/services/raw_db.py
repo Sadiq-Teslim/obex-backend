@@ -12,7 +12,6 @@ import logging
 from typing import Any, Optional
 
 import asyncpg
-from sqlalchemy.engine import make_url
 
 from app.core.settings import settings
 
