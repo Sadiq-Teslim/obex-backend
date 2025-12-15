@@ -40,12 +40,10 @@ class MQTTService:
         print(f"Received message on topic {msg.topic}")
         
         try:
-            # Parse and validate the message
             payload = json.loads(msg.payload.decode())
             print(payload)
             alert_data = AlertCreate(**payload)
             
-            # Process alert in a new event loop for thread safety
             asyncio.run_coroutine_threadsafe(process_and_save_alert(alert_data, source="MQTT"), self.loop)
             
         except json.JSONDecodeError:
@@ -59,7 +57,7 @@ class MQTTService:
         try:
             print("Initializing MQTT connection...")
             self.client.connect(MQTT_CONFIG["BROKER_HOST"], MQTT_CONFIG["BROKER_PORT"], 60)
-            self.client.loop_forever()  # Blocking call that processes network traffic
+            self.client.loop_forever()
         except Exception as e:
             print(f"Critical MQTT connection failure: {e}")
     
@@ -69,5 +67,4 @@ class MQTTService:
         print("Disconnecting from MQTT broker...")
         self.client.disconnect()
 
-# Create global instance for app-wide use
 mqtt_service = MQTTService()

@@ -3,7 +3,7 @@
 from functools import lru_cache
 from typing import Optional
 
-from pydantic import Field
+from pydantic import Field, EmailStr
 from pydantic_settings import BaseSettings
 
 
@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     )
     cache_prefix: str = Field(default="obex", alias="CACHE_PREFIX")
     cache_ttl: int = Field(default=3600, alias="CACHE_TTL")
-    # JWT settings for authentication
+
     jwt_secret: str = Field(default="change-me-in-prod", alias="JWT_SECRET")
     jwt_algorithm: str = Field(default="HS256", alias="JWT_ALGORITHM")
     jwt_exp_minutes: int = Field(default=60, alias="JWT_EXP_MINUTES")
@@ -45,10 +45,22 @@ class Settings(BaseSettings):
     mqtt_password: Optional[str] = Field(default=None, alias="MQTT_PASSWORD")
     mqtt_use_tls: bool = Field(default=False, alias="MQTT_USE_TLS")
 
+    mail_username: str = Field(default="", alias="MAIL_USERNAME")
+    mail_password: str = Field(default="", alias="MAIL_PASSWORD")
+    mail_from: EmailStr = Field(default="noreply@obex.com", alias="MAIL_FROM")
+    mail_from_name: str = Field(default="Obex Edge", alias="MAIL_FROM_NAME")
+    mail_port: int = Field(default=587, alias="MAIL_PORT")
+    mail_server: str = Field(default="smtp.gmail.com", alias="MAIL_SERVER")
+    mail_starttls: bool = Field(default=True, alias="MAIL_STARTTLS")
+    mail_ssl_tls: bool = Field(default=False, alias="MAIL_SSL_TLS")
+    use_credentials: bool = Field(default=True, alias="USE_CREDENTIALS")
+    validate_certs: bool = Field(default=True, alias="VALIDATE_CERTS")
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = False
+        extra = "ignore"  # Prevents crash if .env has extra variables
 
 
 @lru_cache
@@ -92,12 +104,14 @@ API_CONFIG = {
     * Device registration and management
     * WebSocket live streaming of alerts
     * MQTT broker integration for edge devices
+    * OTP Generation and Verification
     
     ### Test Points:
     1. **Device Registration**: Register a new device with `/api/devices/register`
     2. **Alert Creation**: Send alerts via `/api/alerts` or MQTT
     3. **WebSocket**: Connect to `/ws/alerts` for real-time updates
     4. **Alert Retrieval**: List alerts with GET `/api/alerts`
+    5. **OTP**: Generate and verify OTPs via `/api/otp`
     
     ### Important Notes:
     * **IDs are auto-generated** - Do NOT include `id` field when creating devices or alerts
@@ -115,7 +129,7 @@ API_CONFIG = {
     - driver_fatigue
     - distress_detection
     """,
-    "VERSION": "0.2.0",
+    "VERSION": "0.1.0",
     "CONTACT": {
         "name": "OBEX Team",
         "url": "https://github.com/Sadiq-Teslim/obex-backend",
