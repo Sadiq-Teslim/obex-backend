@@ -21,7 +21,6 @@ async def websocket_endpoint(websocket: WebSocket):
         await manager.send_connection_message(websocket)
         
         while True:
-            # Handle keep-alive messages
             await websocket.receive_text()
             await manager.send_pong(websocket)
             

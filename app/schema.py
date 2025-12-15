@@ -3,7 +3,6 @@ from typing import Optional, Literal, Dict, Any
 from datetime import datetime
 import uuid
 
-# --- Device Schemas ---
 class DeviceBase(BaseModel):
     device_id: str = Field(description="Unique identifier for the device")
     vehicle_make: Optional[str] = Field(default=None, description="Vehicle manufacturer")
@@ -56,7 +55,6 @@ class Device(DeviceBase):
         }
     }
 
-# --- Alert Schemas ---
 class AlertBase(BaseModel):
     device_id: str = Field(description="ID of the device that detected the alert")
     timestamp: datetime = Field(description="When the alert occurred")

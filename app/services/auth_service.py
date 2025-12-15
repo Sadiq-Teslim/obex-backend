@@ -26,7 +26,6 @@ async def create_user(
     password_salt = secrets.token_hex(16)
 
     async with AsyncSessionLocal() as session:
-        # Check by EMAIL now, not username
         q = select(User).where(User.email == email)
         result = await session.execute(q)
         existing = result.scalar_one_or_none()
@@ -50,7 +49,6 @@ async def create_user(
 async def authenticate(email: str, password: str) -> Optional[User]:
     """Authenticate by EMAIL."""
     async with AsyncSessionLocal() as session:
-        # Lookup by email
         q = select(User).where(User.email == email)
         result = await session.execute(q)
         user = result.scalar_one_or_none()
@@ -77,12 +75,10 @@ async def authenticate(email: str, password: str) -> Optional[User]:
             await session.commit()
             return user
 
-        # Failure logic
         failed_val = getattr(user, "failed_attempts", None)
         try:
             failed_int = int(failed_val or 0)
         except (TypeError, ValueError):
-            # If the value is an unexpected type (e.g. a SQL expression), default to 0
             failed_int = 0
         new_failed = failed_int + 1
         locked_until = None

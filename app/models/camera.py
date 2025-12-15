@@ -10,7 +10,7 @@ class Camera(Base):
     camera_name = Column(String, nullable=False)
     ip_address = Column(String, nullable=False)
     username = Column(String, nullable=False)
-    password = Column(String, nullable=True) # Can be empty
+    password = Column(String, nullable=True)
     port = Column(Integer, default=554)
     path = Column(String, nullable=False)
     

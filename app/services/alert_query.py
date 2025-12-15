@@ -145,7 +145,6 @@ class AlertQueryService:
             total_result = await session.execute(total_query)
             total_alerts = total_result.scalar()
             
-            # Get alerts by type
             type_query = select(
                 Alert.alert_type,
                 func.count(Alert.id).label('count')
@@ -155,7 +154,6 @@ class AlertQueryService:
             type_result = await session.execute(type_query)
             alerts_by_type = {r[0]: r[1] for r in type_result}
             
-            # Get latest alert
             latest_query = select(Alert).where(
                 Alert.device_id == device_id
             ).order_by(Alert.timestamp.desc()).limit(1)

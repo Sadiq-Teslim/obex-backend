@@ -33,7 +33,6 @@ class ConnectionManager:
                 print(f"Error broadcasting to WebSocket: {e}")
                 disconnected_connections.append(connection)
         
-        # Clean up failed connections
         for connection in disconnected_connections:
             self.disconnect(connection)
 
@@ -52,5 +51,4 @@ class ConnectionManager:
             "timestamp": datetime.utcnow().isoformat()
         }))
 
-# Create global instance for app-wide use
 manager = ConnectionManager()

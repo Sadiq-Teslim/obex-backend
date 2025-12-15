@@ -8,8 +8,7 @@ router = APIRouter(prefix="/api/cameras", tags=["Cameras"])
 
 @router.post("/create", response_model=CameraResponse)
 async def create_camera(payload: CameraCreate):
-    # Construct RTSP URL
-    # Format: rtsp://{username}:{password}@{ipAddress}:{port}/{path}
+    """Create a camera entry and persist its RTSP endpoint."""
     rtsp_url = f"rtsp://{payload.username}:{payload.password}@{payload.ipAddress}:{payload.port}/{payload.path}"
     
     async with AsyncSessionLocal() as session:

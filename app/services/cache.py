@@ -90,6 +90,4 @@ class RedisCache:
         """Close the underlying Redis connection pool."""
         await self.redis.close()
 
-
-# Create global cache instance for application use
 cache = RedisCache()

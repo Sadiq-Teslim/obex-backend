@@ -9,10 +9,9 @@ from sqlalchemy.orm import declarative_base
 
 from app.core.settings import settings
 
-# --- 1. SETUP URL ---
 raw_url = os.getenv("DIRECT_DATABASE_URL") or settings.database_url or "sqlite+aiosqlite:///./obex.db"
 
-# Force Port 5432 (Session Mode) - This is the port that works for you
+# Force session-mode port 5432 when the pooler provides 6543
 if ":6543" in raw_url:
     print("DEBUG: Switching to Session Mode (Port 5432)...")
     raw_url = raw_url.replace(":6543", ":5432")
@@ -29,7 +28,6 @@ print("----------------------------------------------------------------")
 print(f"DEBUG: Connection URL: {raw_url.split('@')[-1]}") 
 print("----------------------------------------------------------------")
 
-# --- 2. CONFIGURE CONNECTION ---
 connect_args: Dict[str, Any] = {}
 
 if "asyncpg" in raw_url:
@@ -45,20 +43,18 @@ if "asyncpg" in raw_url:
     # C. Cache Settings (Safety for Supabase)
     connect_args["statement_cache_size"] = 0
 
-# --- 3. CREATE ENGINE ---
 engine = create_async_engine(
     raw_url,
     echo=False,
     future=True,
     connect_args=connect_args,
-    # THE REAL FIX FOR DROPPED CONNECTIONS:
+    # Connection health options to prevent dropped sessions
     pool_pre_ping=True,  # Automatically detects and discards dead connections
     pool_recycle=300,    # Refreshes connections every 5 minutes
     pool_size=10,
     max_overflow=20,
 )
 
-# --- 4. SESSION FACTORY ---
 AsyncSessionLocal = async_sessionmaker(
     engine,
     class_=AsyncSession,

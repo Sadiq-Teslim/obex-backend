@@ -44,18 +44,15 @@ class ModelLogService:
         """Get a summary of logs for the dashboard (counts, error rates, etc)."""
         since = datetime.utcnow() - timedelta(hours=since_hours)
         async with AsyncSessionLocal() as session:
-            # Total logs
             total_logs = await session.scalar(
                 select(func.count(ModelLog.id)).where(ModelLog.timestamp >= since)
             )
-            # Error logs
             error_logs = await session.scalar(
                 select(func.count(ModelLog.id)).where(
                     ModelLog.timestamp >= since,
                     ModelLog.log_level == "ERROR"
                 )
             )
-            # By model
             by_model = await session.execute(
                 select(
                     ModelLog.model_name,
