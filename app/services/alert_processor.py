@@ -28,20 +28,16 @@ async def process_and_save_alert(alert_data: AlertCreate, source: str):
     async with AsyncSessionLocal() as session:
         try:
             print(alert_data)
-            # Convert Pydantic model to dict
             alert_dict = alert_data.model_dump()
             print(f"Processing alert data from {source}: {alert_dict}")
             
-            # Generate UUID and convert to string for SQLite compatibility
             alert_id = uuid4()
             
-            # Create SQLAlchemy model instance
             new_alert = Alert(
                 **alert_dict,
                 id=alert_id
             )
             
-            # Persist to database
             session.add(new_alert)
             try:
                 await session.commit()
@@ -53,14 +49,12 @@ async def process_and_save_alert(alert_data: AlertCreate, source: str):
             
             print(f"Alert from {source} saved successfully: {new_alert.alert_type}")
 
-            # Create Pydantic model for broadcast
             try:
                 alert_response = AlertSchema.from_orm(new_alert)
             except Exception as schema_error:
                 print(f"Schema conversion error: {schema_error}")
                 raise schema_error
             
-            # Broadcast to WebSocket clients
             try:
                 alert_dict = alert_response.model_dump(mode="json")
                 broadcast_message = json.dumps({
