@@ -23,7 +23,7 @@ class ConnectionManager:
             self.active_connections.remove(websocket)
         print(f"WebSocket disconnected. Total: {len(self.active_connections)}")
 
-    async def broadcast(self, message: str):
+    async def broadcast(self, message: str, user_id: str = None):
         """Send a JSON string message to all connected clients."""
         disconnected_connections = []
         for connection in self.active_connections:

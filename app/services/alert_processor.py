@@ -7,7 +7,10 @@ from fastapi import HTTPException
 from app.db.session import AsyncSessionLocal
 from app.models import Alert
 from app.schemas.alerts import AlertCreate, Alert as AlertSchema
+from app.services import auth_service
 from app.services.websocket import manager
+from app.utils.termii import send_sms
+from app.utils.email import send_email
 
 
 async def process_and_save_alert(alert_data: AlertCreate, source: str):
@@ -61,6 +64,7 @@ async def process_and_save_alert(alert_data: AlertCreate, source: str):
                     "type": "new_alert",
                     "alert": {
                         "id": alert_dict["id"],
+                        "user_id": alert_dict["user_id"],
                         "device_id": alert_dict["device_id"],
                         "timestamp": alert_dict["timestamp"],
                         "alert_type": alert_dict["alert_type"],
@@ -70,9 +74,44 @@ async def process_and_save_alert(alert_data: AlertCreate, source: str):
                     }
                 })
                 print("Broadcasting alert to connected clients")
-                await manager.broadcast(broadcast_message)
+                
+                await manager.broadcast(broadcast_message, user_id=alert_response.user_id)
             except Exception as broadcast_error:
                 print(f"WebSocket broadcast error: {broadcast_error}")
+
+            try:
+                notification_message = (
+                    f"Alert Type: {alert_response.alert_type}\n"
+                    f"User ID: {alert_response.user_id}\n"
+                    f"Device ID: {alert_response.device_id}\n"
+                    f"Timestamp: {alert_response.timestamp}\n"
+                    f"Location: ({alert_response.location_lat}, {alert_response.location_lon})\n"
+                    f"Payload: {alert_response.payload}\n"
+                )
+                
+                user = await auth_service.get_user_by_id(alert_response.user_id)
+                
+                # sent_sms = await send_sms(
+                #     phone_number=user.phone_number if user else None,
+                #     message=notification_message
+                # )
+
+                # if sent_sms:
+                #     print(f"Notification SMS sent to {user.phone_number if user else 'unknown user'}")
+                # else:
+                #     print("Failed to send notification SMS")
+
+                sent_email = send_email(
+                    to=user.email if user else None,
+                    subject="New Obex Security Alert Received",
+                    body=notification_message
+                )
+                if sent_email:
+                    print(f"Notification email sent to {user.email if user else 'unknown user'}")
+                else:
+                    print("Failed to send notification email")
+            except Exception as notification_error:
+                print(f"Notification error: {notification_error}")
             
             return alert_response
 
