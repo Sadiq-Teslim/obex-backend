@@ -10,7 +10,7 @@ from app.core.settings import API_CONFIG
 from app.config.database import connect_db, close_db
 from app.services.mqtt_client import mqtt_service
 
-from app.api.endpoints import alerts, analytics, devices, websocket, home, cameras, otp
+from app.api.endpoints import alerts, analytics, devices, websocket, home, cameras, otp, auth, model_logs
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -54,7 +54,7 @@ def create_app() -> FastAPI:
 
     app.include_router(home.router)
     
-    from app.api.endpoints import auth
+    # Auth endpoints (signup/login)
     app.include_router(auth.router)
 
     app.include_router(cameras.router)
@@ -66,7 +66,6 @@ def create_app() -> FastAPI:
     
     app.include_router(otp.router)
     
-    from app.api.endpoints import model_logs
     app.include_router(model_logs.router)
 
     return app
