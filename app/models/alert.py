@@ -1,6 +1,6 @@
 """Alert models for the database."""
 
-from sqlalchemy import Column, String, Float, TIMESTAMP
+from sqlalchemy import Column, Integer, String, Float, TIMESTAMP
 import os
 from sqlalchemy.dialects.postgresql import JSON
 import json
@@ -31,6 +31,7 @@ class Alert(Base):
     location_lat = Column(Float)
     location_lon = Column(Float)
     payload = Column(JSON)
+    user_id = Column(PG_UUID(as_uuid=True))
     
     def __init__(self, **kwargs):
         # Ensure payload is a string if it's a dict

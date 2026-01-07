@@ -1,5 +1,6 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from datetime import datetime
+from app.api.deps import get_current_user
 from app.schemas.camera import CameraCreate, CameraResponse
 from app.models.camera import Camera
 from app.config.database import AsyncSessionLocal
@@ -7,7 +8,7 @@ from app.config.database import AsyncSessionLocal
 router = APIRouter(prefix="/api/cameras", tags=["Cameras"])
 
 @router.post("/create", response_model=CameraResponse)
-async def create_camera(payload: CameraCreate):
+async def create_camera(payload: CameraCreate, current_user = Depends(get_current_user)): 
     """Create a camera entry and persist its RTSP endpoint."""
     rtsp_url = f"rtsp://{payload.username}:{payload.password}@{payload.ipAddress}:{payload.port}/{payload.path}"
     
@@ -15,6 +16,7 @@ async def create_camera(payload: CameraCreate):
         new_camera = Camera(
             camera_name=payload.cameraName,
             ip_address=payload.ipAddress,
+            user_id=current_user.id,
             username=payload.username,
             password=payload.password,
             port=payload.port,
@@ -22,6 +24,7 @@ async def create_camera(payload: CameraCreate):
             rtsp_url=rtsp_url,
             created_at=datetime.utcnow()
         )
+        print(new_camera)
         
         session.add(new_camera)
         try:
@@ -35,6 +38,8 @@ async def create_camera(payload: CameraCreate):
         "message": "Camera created successfully",
         "data": {
             "cameraName": new_camera.camera_name,
-            "rtspUrl": new_camera.rtsp_url
+            "rtspUrl": new_camera.rtsp_url,
+            "id": new_camera.id,
+            "user_id": new_camera.user_id
         }
     }

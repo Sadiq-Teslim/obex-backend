@@ -1,11 +1,14 @@
+import uuid
 from sqlalchemy import Column, Integer, String, DateTime
 from datetime import datetime
 from app.config.database import Base
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 
 class Camera(Base):
     __tablename__ = "cameras"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(PG_UUID, primary_key=True, default=uuid.uuid4)
+    user_id = Column(PG_UUID(as_uuid=True))
     
     camera_name = Column(String, nullable=False)
     ip_address = Column(String, nullable=False)

@@ -5,6 +5,7 @@ from app.config.database import engine, Base
 from app.models.user import User
 from app.models.camera import Camera
 from app.models.otp import OTP  
+from app.models.alert import Alert
 
 async def update_tables():
     print("Updating Database Tables...")

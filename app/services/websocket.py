@@ -1,40 +1,33 @@
-"""WebSocket connection manager and handler functions."""
-
-import json
-from datetime import datetime
-from typing import List
+from typing import Dict
 from fastapi import WebSocket
-
 
 class ConnectionManager:
     """Manages active WebSocket connections for broadcasting."""
     def __init__(self):
-        self.active_connections: List[WebSocket] = []
+        # Store connections keyed by user_id
+        self.active_connections: Dict[str, WebSocket] = {}
 
-    async def connect(self, websocket: WebSocket):
-        """Add a new WebSocket connection."""
+    async def connect(self, websocket: WebSocket, user_id: str):
+        """Add a new WebSocket connection for a specific user."""
         await websocket.accept()
-        self.active_connections.append(websocket)
-        print(f"WebSocket connected. Total: {len(self.active_connections)}")
+        self.active_connections[user_id] = websocket
+        print(f"WebSocket connected for user {user_id}. Total: {len(self.active_connections)}")
 
-    def disconnect(self, websocket: WebSocket):
-        """Remove a WebSocket connection."""
-        if websocket in self.active_connections:
-            self.active_connections.remove(websocket)
-        print(f"WebSocket disconnected. Total: {len(self.active_connections)}")
+    def disconnect(self, user_id: str):
+        """Remove a WebSocket connection for a user."""
+        if user_id in self.active_connections:
+            del self.active_connections[user_id]
+        print(f"WebSocket disconnected for user {user_id}. Total: {len(self.active_connections)}")
 
-    async def broadcast(self, message: str):
-        """Send a JSON string message to all connected clients."""
-        disconnected_connections = []
-        for connection in self.active_connections:
+    async def send_to_user(self, message: str, user_id: str):
+        """Send a message only to the specified user."""
+        websocket = self.active_connections.get(user_id)
+        if websocket:
             try:
-                await connection.send_text(message)
+                await websocket.send_text(message)
             except Exception as e:
-                print(f"Error broadcasting to WebSocket: {e}")
-                disconnected_connections.append(connection)
-        
-        for connection in disconnected_connections:
-            self.disconnect(connection)
+                print(f"Error sending to {user_id}: {e}")
+                self.disconnect(user_id)
 
     async def send_connection_message(self, websocket: WebSocket):
         """Send initial connection confirmation message."""
@@ -51,4 +44,5 @@ class ConnectionManager:
             "timestamp": datetime.utcnow().isoformat()
         }))
 
+# Create instance
 manager = ConnectionManager()

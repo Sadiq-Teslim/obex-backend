@@ -8,6 +8,7 @@ import uuid
 
 class AlertBase(BaseModel):
     device_id: str = Field(description="ID of the device that detected the alert")
+    user_id: uuid.UUID = Field(default=None, description="ID of the user associated with the device")
     timestamp: datetime = Field(description="When the alert occurred")
     alert_type: Literal[
         'weapon_detection',
@@ -28,6 +29,7 @@ class AlertBase(BaseModel):
             "examples": [{
                 "device_id": "raspberry-pi-001",
                 "timestamp": "2025-11-03T21:22:12.708Z",
+                "user_id": "3fa85f64-5717-4562-b3fc-2c963f6heu2y7",
                 "alert_type": "weapon_detection",
                 "location_lat": 6.5244,
                 "location_lon": 3.3792,
@@ -54,6 +56,7 @@ class Alert(AlertBase):
         "json_schema_extra": {
             "example": {
                 "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "user_id": "3fa85f64-5717-4562-b3fc-2c963f6heu2y7",
                 "device_id": "raspberry-pi-001",
                 "timestamp": "2025-11-03T21:22:12.708Z",
                 "alert_type": "weapon_detection",

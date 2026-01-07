@@ -8,13 +8,13 @@ router = APIRouter(
 )
 
 
-@router.websocket("/ws/alerts")
-async def websocket_endpoint(websocket: WebSocket):
+@router.websocket("/ws/alerts/{user_id}")
+async def websocket_endpoint(websocket: WebSocket, user_id: str):
     """
     WebSocket endpoint for real-time alert notifications.
     Handles client connections, disconnections, and keep-alive messages.
     """
-    await manager.connect(websocket)
+    await manager.connect(websocket, user_id)
     print(f"New WebSocket connection established. Active connections: {len(manager.active_connections)}")
     
     try:
@@ -25,11 +25,11 @@ async def websocket_endpoint(websocket: WebSocket):
             await manager.send_pong(websocket)
             
     except WebSocketDisconnect:
-        manager.disconnect(websocket)
+        manager.disconnect(user_id)
         print(f"WebSocket disconnected. Remaining connections: {len(manager.active_connections)}")
     except Exception as e:
         print(f"WebSocket error: {e}")
-        manager.disconnect(websocket)
+        manager.disconnect(user_id)
         print(f"Connection terminated. Remaining connections: {len(manager.active_connections)}")
 
 
@@ -45,9 +45,9 @@ async def get_websocket_info():
     - Connection status
     """
     return {
-        "websocket_endpoint": "/ws/alerts",
+        "websocket_endpoint": "/ws/alerts/{user_id}",
         "active_connections": len(manager.active_connections),
-        "connection_url": "ws://localhost:8000/ws/alerts",
+        "connection_url": "ws://localhost:8000/ws/alerts/jnjznjianajajk-aasss-wssssa",
         "status": "operational",
         "supported_events": {
             "incoming": ["ping", "message"],

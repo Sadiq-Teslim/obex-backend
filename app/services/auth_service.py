@@ -92,3 +92,11 @@ async def authenticate(email: str, password: str) -> Optional[User]:
         )
         await session.commit()
         return None
+    
+async def get_user_by_id(user_id: int) -> Optional[User]:
+    """Retrieve a user by their ID."""
+    async with AsyncSessionLocal() as session:
+        q = select(User).where(User.id == user_id)
+        result = await session.execute(q)
+        user = result.scalar_one_or_none()
+        return user

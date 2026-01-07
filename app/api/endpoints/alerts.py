@@ -5,7 +5,11 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from dotenv import load_dotenv
 
+load_dotenv() 
+
+from app.api.deps import get_current_user
 from app.models import Alert
 from app.schemas.alerts import AlertCreate, Alert as AlertSchema
 from app.services.alert_processor import process_and_save_alert
@@ -18,7 +22,7 @@ router = APIRouter(
 
 
 @router.post(
-    "",
+    "/create",
     response_model=AlertSchema,
     summary="Create a new alert",
     status_code=201,
@@ -34,6 +38,7 @@ async def receive_alert(alert_data: AlertCreate):
     - **device_id**: ID of the device that detected the alert
     - **timestamp**: When the alert occurred (ISO 8601 format)
     - **alert_type**: Type of security event detected
+    - **user_id**: The Id of the User
     - **location_lat**: Optional latitude coordinate
     - **location_lon**: Optional longitude coordinate
     - **payload**: Optional additional data (e.g., confidence score, bounding box)
@@ -48,17 +53,17 @@ async def receive_alert(alert_data: AlertCreate):
 
 
 @router.get(
-    "",
+    "/",
     response_model=List[AlertSchema],
     summary="Get all alerts",
     description="Retrieve all security alerts from the database, ordered by timestamp (newest first)."
 )
-async def get_all_alerts(db: AsyncSession = Depends(get_db_session)):
+async def get_all_alerts(db: AsyncSession = Depends(get_db_session), current_user = Depends(get_current_user)):
     """
     Retrieve a list of all alerts from the database.
     
     The alerts are sorted by timestamp in descending order (newest first).
     For real-time notifications, connect to the WebSocket endpoint: `/ws/alerts`
     """
-    result = await db.execute(select(Alert).order_by(Alert.timestamp.desc()))
+    result = await db.execute(select(Alert).where(Alert.user_id == current_user.id).order_by(Alert.timestamp.desc()))
     return result.scalars().all()

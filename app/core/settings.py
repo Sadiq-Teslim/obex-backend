@@ -56,6 +56,14 @@ class Settings(BaseSettings):
     use_credentials: bool = Field(default=True, alias="USE_CREDENTIALS")
     validate_certs: bool = Field(default=True, alias="VALIDATE_CERTS")
 
+    termii_api_key: str = Field(default="", alias="TERMII_API_KEY")
+    termii_sender_id: str = Field(default="OBEXED", alias="TERMII_SENDER_ID")
+    termii_base_url: str = Field(default="", alias="TERMII_BASE_URL")
+
+    smtp_name: str = Field(default="Obex Edge", alias="SMTP_NAME")
+    smtp_email: str = Field(default="", alias="SMTP_EMAIL")
+    smtp_password: str = Field(default="", alias="SMTP_PASSWORD")
+    
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

@@ -17,6 +17,7 @@ async def signup(payload: UserSignup):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        print("Error:", e)
         raise HTTPException(status_code=500, detail="Failed to create user")
 
 @router.post("/login", response_model=Token)
@@ -32,5 +33,5 @@ async def login(payload: UserLogin):
             detail="Incorrect email or password",
         )
         
-    access_token = jwt_service.create_access_token(subject=str(user.email))
+    access_token = jwt_service.create_access_token(subject=str(user.id))
     return {"access_token": access_token, "token_type": "bearer"}

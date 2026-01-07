@@ -20,7 +20,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         raise HTTPException(status_code=401, detail="Invalid token payload")
     async with AsyncSessionLocal() as session:
         result = await session.execute(
-            select(User).where(User.id == int(user_id))
+            select(User).where(User.id == str(user_id))
         )
         user = result.scalar_one_or_none()
         if not user:

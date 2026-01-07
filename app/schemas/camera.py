@@ -1,3 +1,4 @@
+import uuid
 from pydantic import BaseModel
 
 class CameraCreate(BaseModel):
@@ -9,8 +10,10 @@ class CameraCreate(BaseModel):
     path: str
 
 class CameraData(BaseModel):
+    id: uuid.UUID
     cameraName: str
     rtspUrl: str
+    user_id: uuid.UUID
 
 class CameraResponse(BaseModel):
     message: str
